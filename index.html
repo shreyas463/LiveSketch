@@ -15,21 +15,11 @@
       <div class="tool-items">
         <div class="tool active-tool" id="pencil">
           <div class="tool-img">
-            <img
-              src="./resources/resources-master/NewIcons/Black_Pencil.svg"
-              alt=""
-            />
+            <img src="./resources/resources-master/NewIcons/Black_Pencil.svg" alt="" />
           </div>
           <div class="tool-options" id="pencil-options">
             <div class="pencil-slider">
-              <input
-                type="range"
-                name=""
-                id="pencil-size"
-                min="1"
-                max="40"
-                value="1"
-              />
+              <input type="range" name="" id="pencil-size" min="1" max="40" value="1" />
             </div>
             <div class="color-options">
               <div class="black" id="black"></div>
@@ -41,55 +31,30 @@
         </div>
         <div class="tool" id="eraser">
           <div class="tool-img">
-            <img
-              src="./resources/resources-master/NewIcons/Eraser.svg"
-              alt=""
-            />
+            <img src="./resources/resources-master/NewIcons/Eraser.svg" alt="" />
           </div>
           <div class="tool-options" id="eraser-options">
             <div class="eraser-slider">
-              <input
-                type="range"
-                name=""
-                id="eraser-size"
-                min="1"
-                max="40"
-                value="1"
-              />
+              <input type="range" name="" id="eraser-size" min="1" max="40" value="1" />
             </div>
           </div>
         </div>
         <div class="tool" id="sticky">
           <div class="tool-img">
-            <img
-              src="./resources/resources-master/NewIcons/StickyNote.svg"
-              alt=""
-            />
+            <img src="./resources/resources-master/NewIcons/StickyNote.svg" alt="" />
           </div>
         </div>
         <div class="tool" id="upload-img">
           <label for="upload">
             <div class="tool-img">
-              <img
-                src="./resources/resources-master/NewIcons/Photo.svg"
-                alt=""
-              />
+              <img src="./resources/resources-master/NewIcons/Photo.svg" alt="" />
             </div>
-
-            <input
-              type="file"
-              name="upload"
-              id="upload"
-              style="display: none"
-            />
+            <input type="file" name="upload" id="upload" style="display: none" />
           </label>
         </div>
         <div class="tool" id="download">
           <div class="tool-img">
-            <img
-              src="./resources/resources-master/NewIcons/Download.svg"
-              alt=""
-            />
+            <img src="./resources/resources-master/NewIcons/Download.svg" alt="" />
           </div>
         </div>
         <div class="tool" id="undo">
@@ -125,5 +90,65 @@
     <script src="./img.js"></script>
     <script src="./util.js"></script>
     <script src="./receiver.js"></script>
+
+    <!-- Add MongoDB and ipcRenderer functionality -->
+    <script>
+      const { ipcRenderer } = require('electron');
+
+      // Generate a random user ID or store it in localStorage
+      let userId = localStorage.getItem('userId');
+      if (!userId) {
+        userId = `user_${Math.random().toString(36).substring(2, 9)}`;  // Generate unique user ID
+        localStorage.setItem('userId', userId);
+      }
+
+      // Function to send drawing actions to the main process
+      function sendUserAction(actionType, data) {
+        const action = {
+          userId: userId,  // Use the generated user ID
+          actionType: actionType,
+          timestamp: new Date(),
+          data: data
+        };
+        ipcRenderer.send('store-action', action);  // Send to main process
+      }
+
+      // Example for capturing drawing actions
+      function onDraw(x, y, color, strokeWidth) {
+        const drawingData = { x, y, color, strokeWidth };
+        sendUserAction('draw', drawingData);  // Send drawing data to main process
+      }
+
+      // Example usage: Trigger onDraw when drawing on the canvas
+      const canvas = document.getElementById('canvas');
+      const ctx = canvas.getContext('2d');
+
+      canvas.addEventListener('mousedown', function (e) {
+        const color = 'blue';  // Example color
+        const strokeWidth = 2;  // Example stroke width
+        const x = e.offsetX;
+        const y = e.offsetY;
+        ctx.beginPath();
+        ctx.moveTo(x, y);
+
+        canvas.addEventListener('mousemove', onMouseMove);
+
+        function onMouseMove(e) {
+          const newX = e.offsetX;
+          const newY = e.offsetY;
+          ctx.lineTo(newX, newY);
+          ctx.strokeStyle = color;
+          ctx.lineWidth = strokeWidth;
+          ctx.stroke();
+
+          // Send the action to MongoDB through the main process
+          onDraw(newX, newY, color, strokeWidth);
+        }
+
+        canvas.addEventListener('mouseup', function () {
+          canvas.removeEventListener('mousemove', onMouseMove);
+        });
+      });
+    </script>
   </body>
 </html>
